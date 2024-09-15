@@ -1,0 +1,645 @@
+---
+title: "Ejerecicio 3"
+date: "2024-05-12"
+output: pdf_document
+---
+
+3.  **Componentes principales y análisis factorial exploratorio**
+
+Considere los datos en el archivo "Dat3Ex.csv". Estos datos corresponden a una encuesta que intenta analizar la personalidad de un grupo de 228 alumnos de licenciatura de una universidad de Estados Unidos. Las respuestas van del 1 al 5 de acuerdo con el cuestionario de la Figura 1.
+
+Sólo considere las variables: V1, V2, V3, V6, V8, V12, V13, V16, V17, V26, V27, V28, V31, V33, V37.
+
+i.  Asumiendo que las variables son continuas, obtenga los componentes principales e indique si se pueden identificar dimensiones interesantes de estos datos. Explore el uso de los datos en la escala original y con alguna escala tranformada.
+
+## 
+
+```{r}
+rm(list = ls(all.names = TRUE))
+gc()
+#install.packages("polycor")
+library(tidyverse)
+library(polycor)
+
+# Librerías
+library(dplyr)      # Para el manejo de datos
+library(ggplot2)    # Para realizar gráficas
+library(kableExtra) # Para un mejor manejo de tablas
+library(GGally)     # Para realizar análisis descriptivo fácilmente
+library(multcomp)   # Para pruebas de hipótesis
+library(car)        # Para funciones útiles de modelos de regresión lineal múltiple
+library(broom)      # Para obtener los residuales estandarizados
+library(DHARMa)     # Para la verificación de supuestos
+library(ISLR)       # Para la base de datos
+library(leaps)      # Para el cálculo de los mejores conjuntos de variables por diversos métodos
+library(bestglm)    # Para obtener el mejor subconjunto
+library(glmnet)     # Para utilizar la penalización Lasso
+library(factoextra) # Para obtener los componentes principales
+library(psych)      # Para obtener el análisis factorial
+library(bayesQR)  
+
+#Cambiamos de libreria
+setwd("C:/Users/tobiy/OneDrive/Documentos/Seminario de estadistica/Tarea 2")
+      
+Datos <- read.csv("Dat3Ex.csv")
+#Seleccionamos solo las columnas que son de nuestro interes
+Datos <- Datos[,c("V1","V2", "V3", "V6", "V8", "V12", "V13", "V16", "V17", "V26", "V27", "V28", "V31", "V33", "V37")]
+
+```
+
+Los datos corresponden a una encuesta que intenta analizar la personalidad de un grupo de 228 alumnos de licenciatura de una universidad de Estados Unidos, las respuestas van de 1 a 5 donde 1 es "muy en desacuerdo", 2 es "poco desacuerdo", 3 es "ni en desacuerdo ni acuerdo", 4 "poco de acuerdo" y 5 es "muy en acuerdo". Las variables de interes de nuestro estudio son las siguientes:
+
+V1:"Es hablador", v2:"Tiende a encontrar fallas en los demás", v3:"Hace un trabajo minucioso", v6:"Es reservado", v8:"Puede ser algo descuidado", v12:"Empiezas peleas con otros", v13:"Es un tabajador confiable", v16:"Generas mucho entusiasmo", v17:"Perdonas facilmente", v26:"Tienes una personalidad asertiva", v27:"Puedes ser frio y distante", v28:"Perseveras hasta el final", v31:"Eress timido y inhibido a veces", v33:"haces cosas eficientemente", v37:"Eres rudo con otros"
+
+Primero vamos a variales van en el mismo sentido: V1:"Es hablador",v3:"Hace un trabajo minucioso",v13:"Es un tabajador confiable",v16:"Generas mucho entusiasmo", v17:"Perdonas facilmente",v26:"Tienes una personalidad asertiva",v28:"Perseveras hasta el final", v33:"haces cosas eficientemente".
+
+Otro sentido:,v2:"Tiende a encontrar fallas en los demás, v6:"Es reservado",v8:"Puede ser algo descuidado",v12:"Empiezas peleas con otros", v27:"Puedes ser frio y distante",v31:"Eres timido y inhibido a veces",v37:"Eres rudo con otros".
+
+```{r}
+X11()
+ggpairs(data=Datos, title="Datos")
+summary(Datos)
+
+X11()
+ggpairs(data=Datos, title="Datos")
+summary(Datos)
+var(Datos)
+```
+
+De acuerdo con la correlación calculada en los datos proporcionados, se observa una fuerte relación entre algunas variables. Por ejemplo de v6 con v1, v8 con v2, v12 con v2, v16 con v1, y v13 con v3, entre otras. Además, al revisar la salida de la función 'var(Datos)', se observan diferencias significativas en las varianzas de las variables. La varianza más pequeña es de 0.52, perteneciente a v13, mientras que la más grande es de 1.338, correspondiente a v31. Dada la escala de los números, estas diferencias pueden considerarse importantes, lo que podría ocasionar problemas en el análisis de componentes principales.
+
+Para abordar este problema, se probarán a parte dos transformaciones en los datos: la transformación logarítmica y la estandarización. Estas transformaciones pueden ayudar a mitigar los problemas relacionados las diferencias en las varianzas.
+
+Una vez aplicadas las transformaciones, se procederá a realizar el análisis de componentes principales utilizando los datos transformados. Esto permitirá evaluar cómo afectan estas transformaciones a los resultados del análisis y determinar cuál es más adecuada para los datos y los objetivos de análisis.
+
+**Componentes principales con los datos origniales**
+
+```{r}
+#Obtenemos las componentes principales con los datos originales.
+R.CP=prcomp(Datos, scale = FALSE)
+
+#Contribucion de las variabeles en las componentes principales.
+fviz_pca_var(R.CP, col.var = "contrib",title = "Variables PCA con los datos originales")
+
+#Con Principal
+p=15
+pca <- principal(Datos, cor="cov", covar = TRUE, nfactor = p, rotate = "none",scores=TRUE)
+pca
+
+fa.diagram(pca, cut = .5, digits = 2)
+title("(datos originales)")
+```
+
+De acuerdo con la gráfica "Variables PCA con los datos originales", observamos que la contribución de las variables originales a las componentes principales parece caer dentro del mismo rango, lo que sugiere que posiblemente no se necesite realizar una transformación de los datos. Además, al revisar la varianza acumulada, notamos que hasta la componente PC8 se explica el 80% de la varianza original; sin embargo, solo las componentes PC1, PC2, PC3, PC4, PC5 y PC9 tienen una correlación mayor a 0.5 con los datos originales.
+
+De acuerdo con la figura "Componentes Analysis (datos originales)", identificamos las siguientes dimensiones que, según nuestro criterio, vale la pena considerar:
+
+1.  **Índice sobre personas conflictivas (PC1)**: Correlaciona positivamente con V37: "Eres rudo con otros", V27: "Puedes ser frío y distante", y V12: "Empiezas peleas con otros". Y negativamente con V16: "Generas mucho entusiasmo".
+
+2.  **Índice de Extroversion-Introversion(PC2)**: Correlaciona positivamente con V1: "Es hablador" y V26: "Tienes una personalidad asertiva". Y negativamente con V31: "Eres tímido" y V6: "Eres reservado".
+
+**Componentes principales con los datos estandarizados**
+
+```{r}
+# Calcular la media de cada columna
+medias <- colMeans(Datos)
+# Calcular la desviación estándar de cada columna
+desviaciones <- apply(Datos, 2, sd)
+# Normalizar los datos restando la media y dividiendo por la desviación estándar
+datos_normalizados <- scale(Datos, center = medias, scale = desviaciones)
+# Grafica de correlaciones y varianza con los datos normalizados
+
+ggpairs(data=datos_normalizados, title="Datos normalizados")
+
+#Obtenemos los componentes principales
+Est_CP = prcomp(Datos, scale = TRUE)
+
+
+fviz_eig(Est_CP)
+#Contribucion de las variabeles en las componentes principales.
+fviz_pca_var(Est_CP, col.var = "contrib",title = "Variables PCA con los datos Estandarizados")
+
+#Con Principal
+Est_pca <- principal(Datos, cor="cor", covar = TRUE, nfactor = p, rotate = "none",scores=TRUE)
+Est_pca
+
+#Correlacion entre las variables y componentes principales.
+fa.diagram(Est_pca, cut = .5, digits = 2)
+title("(Datos estandarizados)")
+```
+
+De acuerdo con las gráficas "Variables PCA con los datos originales", observamos similitudes en las contribuciones entre las variables originales y las estandarizadas. Además, al analizar la varianza acumulada en las componentes principales, notamos que hasta la componente 9 se explica el 84% de la varianza. Sin embargo, las componentes principales que comparten una correlación superior a 0.5 con las algunas variables son: PC1, PC2, PC3, PC4 y PC5.
+
+¿Qué dimensiones interesantes encontramos? De acuerdo con la Figura "Componentes Analysis (datos estandarizados)", identificamos las siguientes dimensiones que vale la pena considerar:
+
+1.  **Índice de conducta Constructiva-Destructiva. (PC1)**: Correlaciona negativamente con V27: "Puedes ser frío y distante", V37: "Eres rudo con otros", V12: "Empiezas peleas con otros", y V2: "Tiende a encontrar fallas en los demás". Y positivamente con V3: "Hace un trabajo minucioso", V16: "Generas mucho entusiasmo", V13: "Es un trabajador confiable", y V33: "Haces cosas eficientemente".
+
+2.  **Índice de Extroversion-Introversion (PC2)**: Correlaciona positivamente con V1: "Es hablador" y V26: "Tienes personalidad asertiva". Y negativamente con V31: "Eres tímido" y V6: "Eres reservado".
+
+3.  (PC3): Correlaciona positivamente con V17: "Perdonas fácilmente" y V8: "Eres descuidado".
+
+**Componentes con transformacion logaritmica**
+
+```{r}
+X11()
+ggpairs(data=log10(Datos), title="Datos con tranformacion logaritmica")
+
+
+#Obtenemos las componentes principales.
+Log_CP=prcomp(log10(Datos), scale = FALSE)
+
+X11()
+par(mfrow=c(1,1))
+biplot(Log_CP, main="Biplot de PCA con los datos con transformacion logaritmicos")
+
+X11()
+fviz_eig(Log_CP)
+#Contribucion de las variabeles en las componentes principales.
+fviz_pca_var(Log_CP, col.var = "contrib",title = "Variables PCA con los datos con transformacion logaritmica")
+
+Log_pca <- principal(log10(Datos), cor="cov", covar = TRUE, nfactor = p, rotate = "none",scores=TRUE)
+pca
+
+fa.diagram(Log_pca, cut = .5, digits = 2)
+title("(transformacion logaritmica)")
+```
+
+De acuerdo con la Figura 'Datos con transformación logarítmica', se observa que la correlación entre las variables es baja, siendo menor a 0.5, lo que sugiere que algo podría no estar correctamente ajustado. Además, al examinar la Figura 'Variables PCA con los datos con transformación logarítmica', se aprecia que las contribuciones de las variables a las componentes principales difieren de las contribuciones con los datos originales, mostrando magnitudes pequeñas. Esto se complementa con el hecho de que ninguna de las componentes principales presenta una correlación, en valor absoluto, mayor a 0.5. Por lo tanto, esta transformación parece ser la menos efectiva, ya que no logra representar adecuadamente a las variables mediante las componentes principales.
+
+**Conclucion del inciso 1**
+
+Al analizar las distintas representaciones de los datos, se identifican generalmente dos dimensiones interesantes: el Índice de Conducta Constructiva-Destructiva (PC1) y el Índice de Extroversión-Introversión (PC2). Además, se observa que tanto en el caso de los datos estandarizados como en los datos originales, las varianzas y contribuciones de los datos parecen comportarse de manera similar. Sin embargo, considero que la transformación que mejor resume los datos es la estandarizada.
+
+ii. Asumiendo que las variables son continuas, aplique la técnica de análisis exploratorio factorial e indique si se pueden identificar dimensiones interesantes de estos datos. Explore el uso de los datos en la escala original y con alguna escala transformada.
+
+**Escala original**
+
+```{r}
+#Aproximamos primero el numero de factores usadno fa.parallel
+set.seed(123)
+parallel <- fa.parallel(Datos, fa="fa", n.iter=100)
+
+```
+
+```{r}
+#La salida anterior sugiere 4 factores, probaremos ademas con 3 y 5.
+Efa_org4 <- fa(Datos,nfactors=4) 
+Efa_org4
+
+fa.diagram(Efa_org4)
+title("(Datos originales)")
+```
+
+De la salida anterior, se extraen los siguientes resultados:
+
+1.  La probabilidad asociada (prob) es menor a 0.0041, lo que sugiere que el modelo no se ajusta adecuadamente a los datos.
+
+2.  El Índice de Fiabilidad de Factores de Tucker Lewis es 0.926, indicando una buena consistencia interna en los datos.
+
+3.  El índice RMSEA es 0.051. Estos valores sugieren un ajuste moderado del modelo, con una ligera tendencia al sobreajuste.
+
+4.  El BIC es -195.24, lo que sugiere un buen ajuste del modelo en comparación con otros modelos.
+
+En resumen, excepto por el punto 1, los resultados indican que el modelo podría ser el más adecuado, aunque solo explica el 44% de la varianza con sus cuatro factores. De la figura "Análisis de Factores (Datos Originales)" podemos encontrar, según nuestro, criterio las siguientes dimensiones interesantes:
+
+1.  **Índice de Eficiencia y Confiabilidad (MR1)** correlacionada positivamente con v3:"Hace un trabajo minucioso",v16:"Generas mucho entusiasmo", v13:"Es un trabajador confiable", v33:"Haces cosas eficientemente" y v17:"Perdonas facilmente".Y negativamente con v12:"Empiezas peleas con otros",v27:"Puedes ser frio y distante", v37:"Eres rudo y distante", v2:"Tiende a encontrar fallas en los demas" y v8:"Puede ser algo descuidado".
+
+2.  **Indice de introvercion (MR2)** correlacionado positivamente con v1:"Es hablador" y v26:"Tienes personalidad acertiva". Negativamente con v6:"Es reservado" y v31:"Eres timido".
+
+```{r}
+#Con 3 factors
+Efa_org3 <- fa(Datos,nfactors=3) 
+Efa_org3
+
+#Correlaciones
+fa.diagram(Efa_org3)
+title("(Datos originales con tres factores)")
+```
+
+De la salida anterior, se extraen los siguientes resultados:
+
+1.  La probabilidad asociada (prob) es menor a 3.5e-06 , lo que sugiere que el modelo no se ajusta adecuadamente a los datos.
+
+2.  El Índice de Fiabilidad de Factores de Tucker Lewis es 0.877, sugiere una buena consistencia interna en los datos.
+
+3.  El índice RMSEA es 0.066 . Estos valores sugieren un ajuste moderado del modelo, con una ligera tendencia al sobreajuste.
+
+4.  El BIC es -215.31, lo que sugiere un buen ajuste del modelo en comparación con otros modelos.
+
+En resumen, excepto por el punto 1, los resultados indican que el modelo podría ser el más adecuado, aunque solo explica el 42% de la varianza con los tres factores. De la figura "Análisis de Factores (Datos Originales con 3 factores)" podemos encontrar, según nuestro, criterio las siguientes dimensiones interesantes:
+
+1.  **Índice de Eficiencia y Confiabilidad (MR1)** correlacionada positivamente con v3:"Hace un trabajo minucioso",v16:"Generas mucho entusiasmo", v13:"Es un trabajador confiable", v33:"Haces cosas eficientemente" y v17:"Perdonas facilmente".Y negativamente con v12:"Empiezas peleas con otros",v27:"Puedes ser frio y distante", v37:"Eres rudo y distante", v2:"Tiende a encontrar fallas en los demas" y v8:"Puede ser algo descuidado".
+
+2.  **Indice de introvercion E(MR2)** correlacionado positivamente con v1:"Es hablador" y v26:"Tienes personalidad acertiva". Negativamente con v6:"Es reservado" y v31:"Eres timido".
+
+Nos damos cuenta que son las mismas que con 4 factores, sin embargo el BIC es mejor, por lo que podriamos conciderarlo mejor modelo.
+
+```{r}
+#Con 5 factors
+Efa_org5 <- fa(Datos,nfactors=5) 
+Efa_org5
+
+#Correlaciones
+fa.diagram(Efa_org5)
+title("(Datos originales con 5 factores)")
+```
+
+De la salida anterior, se extraen los siguientes resultados:
+
+1.  La probabilidad asociada (prob) es menor a 0.53, lo que sugiere que el modelo parece ajustarce bien a los datos, ya que no es muy baja.
+
+2.  El Índice de Fiabilidad de Factores de Tucker Lewis es 1.004, indicando que posiblemente hay un problema con los datos ya que lo ideal es que sea menor a 1.
+
+3.  El índice RMSEA es 0. Este valor sugier un buen ajuste del modelo.
+
+4.  El BIC es -178.54, lo que sugiere un buen ajuste del modelo. Sin embargo, a comparacion de los otros 2 ajustes, segun este indice, parece ser el peor.
+
+Ademas, en resumen, con este numero de factores se obtiene los mismos indices que con solo 3 factores. Y observando todos los indicadores, parece que de los 3 modelos este es el que peor resume los datos.
+
+**Escala estandarizada**
+
+```{r}
+#Aproximamos primero el numero de factores para los datos estandarizadosusadno fa.parallel
+X11()
+set.seed(123)
+parallel <- fa.parallel(scale(Datos), fa="fa", n.iter=100)
+```
+
+```{r}
+#La salida anterior sugiere 4 factores, probaremos ademas con 3.
+Efa_est4 <- fa(scale(Datos), nfactors = 4)
+
+Efa_est4
+
+#Correlaciones
+fa.diagram(Efa_est4)
+title("(Datos estandarizados con 4 factores)")
+
+```
+
+De la salida anterior, se extraen los siguientes resultados:
+
+1.  La probabilidad asociada (prob) es menor a 0.0041, lo que sugiere que el modelo parece no ajustarce bien a los datos, ya que el p-valor es muy bajo.
+
+2.  El Índice de Fiabilidad de Factores de Tucker Lewis es 0.926, lo que parece indicar que los datos se ajustan bien, ya que el valor es cercano a 1.
+
+3.  El índice RMSEA es 0.051. Este valor sugiere un buen ajuste del modelo.
+
+4.  El BIC es -195.24, lo que sugiere un buen ajuste del modelo. Sin embargo, a comparacion de los otros ajustes, segun este indice, no es el mejor.
+
+En resumen, con este numero de factores y segun los indicadores mencionados anteriormente, el ajuste parece ser bueno.Algunas dimenciones interesantes de analizar son las siguientes:
+
+1.  **Índice de Eficiencia y Confiabilidad (MR1)** que esta correlacionado positivamente con v3:"Hace un trabajo minucioso", v16:"Generas mucho entusiasmeo", v13:"Eres un trabajador confiable", v33:"Haces cosas eficientemente", v17:"Perdonas facilmente". Y correlacionadas negativamente con v27:"Puedes ser frio y distante", v12:"Empiezas peleas con otros", v37:"Eres rudo con otros", v2:"Tiendes a encontrar fallas en los demas", v8:"Puede ser algo descuidado".
+
+2.  **Indice de Introvercion-Extroversion(MR2)** que esta correlacionado positivamente con v1:"Es hablador" y v26:"Tienes una personalidad acertiva". Y correlacionado negativamente con v31:"Eres timido y inhibido a veces" y v6:"Es reservado".
+
+```{r}
+Efa_est3 <- fa(scale(Datos), nfactors = 3)
+
+Efa_est3
+
+#Correlaciones
+fa.diagram(Efa_est3)
+title("(Datos estandarizados con 3 factores)")
+```
+
+De los resultados presentados:
+
+1.  La probabilidad asociada (prob) es menor a 3.5e-06, lo que sugiere que el modelo parece no ajustarse bien a los datos, ya que el valor p es muy bajo.
+
+2.  El Índice de Fiabilidad de Factores de Tucker Lewis es 0.877, lo que podría indicar un ajuste razonable de los datos, aunque no óptimo, dado que el valor no se acerca a 1.
+
+3.  El índice RMSEA es 0.066, lo cual puede interpretarse como un indicio de un ajuste adecuado del modelo.
+
+4.  El BIC es -215.31, lo que sugiere un buen ajuste del modelo en comparación con otros, y según este índice, es uno de los mejores ajustes.
+
+En resumen, con el número de factores indicados y considerando los indicadores mencionados, el ajuste parece ser adecuado. Sin embargo, hay algunas dimensiones interesantes para analizar:
+
+1.  **Índice de Eficiencia y Confiabilidad (MR1)**, el cual está correlacionado positivamente con v3:"Hace un trabajo minucioso", v16:"Generas mucho entusiasmo", v13:"Eres un trabajador confiable", v33:"Haces cosas eficientemente", v17:"Perdonas fácilmente", y correlacionado negativamente con v27:"Puedes ser frío y distante", v12:"Empiezas peleas con otros", v37:"Eres rudo con otros", v2:"Tiendes a encontrar fallas en los demás", v8:"Puede ser algo descuidado".
+
+2.  **Índice de Introversión-Extroversión (MR2)**, el cual está correlacionado positivamente con v1:"Es hablador" y v26:"Tienes una personalidad asertiva", y correlacionado negativamente con v31:"Eres tímido e inhibido a veces" y v6:"Es reservado".
+
+Ambos índices son similares a los obtenidos con 4 factores, pero según los indicadores, el modelo anterior parece ser mejor.
+
+**Escala logaritmica**
+
+```{r}
+#La salida anterior sugiere 4 factores, probaremos ademas con 3 y 5.
+Efa_log4 <- fa(log10(Datos), nfactors = 4)
+
+Efa_log4
+
+#Correlaciones
+fa.diagram(Efa_log4)
+title("(Datos logaritmicas con 4 factores)")
+```
+
+De los resultados presentados:
+
+1.  La probabilidad asociada (prob) es menor a 0.0058, lo que sugiere que el modelo parece no ajustarse bien a los datos, ya que el valor p es muy bajo.
+
+2.  El Índice de Fiabilidad de Factores de Tucker Lewis es 0.924, lo que podría indicar un ajuste razonable de los datos.
+
+3.  El índice RMSEA es 0.05, lo cual puede interpretarse como un indicio de un ajuste adecuado del modelo.
+
+4.  El BIC es -196.85, lo que sugiere un buen ajuste del modelo en comparación con otros.
+
+En resumen, con el número de factores indicados y considerando los indicadores mencionados, el ajuste parece ser adecuado. Hay algunas dimensiones interesantes para analizar:
+
+1.  **Índice de Tendencias Negativas Sociales (MR1)**, el cual está correlacionado positivamente con v27:"Puede ser frio y distante", v12:"Empiezas peleas con otros", v37:"Eres rudo con otros", v2:"Tiendes a encontras fallas en los demas, v8:"Puedes ser algo descuidado". Y correlacionado negativamente con v16:"Genereas mucho entusiasmo", v13:"Es un trabajador confiable", v17:"Perdonas facilmente".
+
+2.  **Índice de Introversión-Extroversión (MR2)**, el cual está correlacionado positivamente con v1:"Es hablador" y v26:"Tienes una personalidad asertiva", y correlacionado negativamente con v31:"Eres tímido e inhibido a veces" y v6:"Es reservado".
+
+3.  **índice Perseverancia y Eficiencia(MR3)**, el cual esta correlacionado positivamente con v3:"Hace un trabajo municioso", v33:"Haces cosas eficientemente" y v28:"Perseveras hasta el final".
+
+Ambos índices son similares a los obtenidos con los demas factores.
+
+```{r}
+#La salida anterior sugiere 4 factores, probaremos ademas con 3 y 5.
+Efa_log3 <- fa(log10(Datos), nfactors = 3)
+
+Efa_log3
+
+#Correlaciones
+fa.diagram(Efa_log3)
+title("(Datos logaritmicas con 3 factores)")
+```
+
+De los resultados presentados:
+
+1.  La probabilidad asociada (prob) es menor a 5e-05, lo que sugiere que el modelo parece no ajustarse bien a los datos, ya que el valor p es muy bajo.
+
+2.  El Índice de Fiabilidad de Factores de Tucker Lewis es 0.887, lo que podría indicar un ajuste razonable de los datos, sin embargo no es el mejor.
+
+3.  El índice RMSEA es 0.061, lo cual puede interpretarse como un indicio de un ajuste adecuado del modelo, sin embargo no es el mejor.
+
+4.  El BIC es -225.7, lo que sugiere un buen ajuste del modelo en comparación con otros.
+
+En resumen, con el número de factores indicados y considerando los indicadores mencionados, el ajuste parece ser adecuado. Hay algunas dimensiones interesantes para analizar:
+
+1.  **Índice de Tendencias Negativas Sociales(MR1)**, el cual está correlacionado positivamente con v27:"Puede ser frio y distante", v12:"Empiezas peleas con otros", v37:"Eres rudo con otros", v2:"Tiendes a encontras fallas en los demas, v8:"Puedes ser algo descuidado". Y correlacionado negativamente con v16:"Genereas mucho entusiasmo", v13:"Es un trabajador confiable" y v17:"Perdonas facilmente".
+
+2.  **Índice de Introversión-Extroversión (MR2)**, el cual está correlacionado positivamente con v1:"Es hablador" y v26:"Tienes una personalidad asertiva", y correlacionado negativamente con v31:"Eres tímido e inhibido a veces" y v6:"Es reservado".
+
+3.  **índice Perseverancia y Eficiencia(MR3)**, el cual esta correlacionado positivamente con v3:"Hace un trabajo municioso", v33:"Haces cosas eficientemente" y v28:"Perseveras hasta el final".
+
+De todas las transformaciones y datos vistos anteriormente, el que parece resumir de mejor manera los datos, segun nuestro criterio es el que tiene una transformacion logaritmica base 10 con 4 factores.
+
+iii. Realice modificaciones en i) y ii) considerando a) que los datos son categóricos ordinales y b) rotaciones a los resultados. Considerando todos los resultados, sólo seleccione un conjunto de componentes o factores, los que le parecen más adecuados, e interprete.
+
+**Componentes principales**
+
+a)  Sin rotacion
+
+```{r}
+p<-15
+Ord_CP=principal(Datos, cor="mixed", covar = TRUE, nfactor = p, rotate = "none",scores=TRUE)
+Ord_CP
+
+fa.diagram(Ord_CP, cut = .5, digits = 2)
+title("(datos ordinales originales, mixed)")
+```
+
+Da acurdo con la salida se puede ver que a la varianza, a comparacion de los otros modelos, se distribuye mejor. En menor numero de componentes, se acumula mas varianza.
+
+De acuerdo con la figura "Componentes Analysis (datos ordinales originales, mixed)", identificamos las siguientes dimensiones que, según nuestro criterio, vale la pena considerar:
+
+1.  **Índice de Responsabilidad y Empatía (PC1)**: Correlaciona positivamente con v3:"Hace un trabajo municioso", v13:"Es un trabajador confiable", v16:"Generas mucho entusiasmo", v33:"Haces cosas eficientemente" y v17:"Perdonas facilmente". Y negatiivamente con v27:"Puede ser frio y distante", v12:"Empiezas peleas con otros" y v37:"Eres rudo con otros".
+
+2.  **Índice de Extroversion-Introversion(PC2)**: Correlaciona positivamente con V1: "Es hablador" y V26: "Tienes una personalidad asertiva". Y negativamente con V31: "Eres tímido" y V6: "Eres reservado".
+
+<!-- -->
+
+b)  Rotacion "varimax"
+
+```{r}
+Ord_CP_vari=principal(Datos, cor="mixed", covar = TRUE, nfactor = p, rotate = "varimax",scores=TRUE)
+Ord_CP_vari
+
+fa.diagram(Ord_CP_vari, cut = .5, digits = 2)
+title("(datos ordinales originales con rotacion varimax)")
+```
+
+De todos los modelos, este es el peor, ya que no resume ni disminuye las dimenciones.
+
+c)Con rotacion "Oblimin"
+
+```{r}
+Ord_CP_obl=principal(Datos, cor="mixed", covar = TRUE, nfactor = p, rotate = "oblimin",scores=TRUE)
+Ord_CP_obl
+
+
+fa.diagram(Ord_CP_obl, cut = .5, digits = 2)
+title("(datos ordinales originales con rotacion oblimin)")
+```
+
+De acuerdo con la salida, observamos que la varianza no se distribuye tan bien como si no hubiera rotación. Sin embargo, la distribución es aceptable.
+
+Según la figura "Componentes Analysis (datos ordinales originales, mixed)", identificamos las siguientes dimensiones que, a nuestro criterio, vale la pena considerar:
+
+1.  **Índice de Responsabilidad y Empatía (TC1)**: Correlaciona positivamente con v3: "Hace un trabajo minucioso", v13: "Es un trabajador confiable", v16: "Generas mucho entusiasmo", v33: "Haces cosas eficientemente" y v17: "Perdonas fácilmente". Correlaciona negativamente con v27: "Puede ser frío y distante", v12: "Empiezas peleas con otros" y v37: "Eres rudo con otros".
+
+2.  **Índice de Extroversión-Introversión (TC2)**: Correlaciona positivamente con V1: "Eres hablador" y V26: "Tienes una personalidad asertiva". Correlaciona negativamente con V31: "Eres tímido" y V6: "Eres reservado".
+
+En resumen, con la rotación "oblimin" y sin rotación, los componentes principales parecen resumir los datos de manera similar. Sin embargo, sin rotación, la varianza de los datos se distribuye mejor, por lo que este modelo es el preferido.
+
+**Analisis factorial exploratorio** Con el siguiente codigo veremos cuantas variables sugiere el r.
+
+```{r}
+# Supongamos que 'Datos' es tu dataframe con datos ordinales
+# Asegúrate de que las variables estén definidas como factores
+Datos2 <- as.data.frame(lapply(Datos, as.ordered))
+
+# Calcular la matriz de correlación policórica
+cor_poly <- hetcor(Datos2)$correlations
+set.seed(123)
+
+# Realizar el análisis factorial paralelo utilizando la matriz de correlación policórica
+parallel <- fa.parallel(cor_poly, fa="fa", n.iter=100, cor="poly")
+
+# Mostrar los resultados
+print(parallel)
+
+```
+
+a)  Sin ninguna rotacion.
+
+```{r}
+Efa_ord <- fa(Datos, cor="mixed", covar = TRUE, nfactor = 3, rotate = "none")
+
+Efa_ord
+
+#Correlaciones
+fa.diagram(Efa_ord)
+title("(Datos originales ordinales, 3 factores y sin rotacion)")
+```
+
+De la salida anterior, se extraen los siguientes resultados:
+
+1.  La probabilidad asociada (prob) es menor a 7.7e-07, lo que sugiere que el modelo no se ajusta bien a los datos, ya que es muy baja.
+
+2.  El Índice de Fiabilidad de Factores de Tucker Lewis es 0.878, lo que nos dice que es un buen modelo, sin embargo no es el mejor ya que no es el mas cercano a 1.
+
+3.  El índice RMSEA es 0.069 que indica que los datos parecen ajustarse bien a los datos, pero hay mejores.
+
+4.  El BIC es -209.72, lo que sugiere que este es un buen ajuste del modelo.
+
+Algunas factores interesantes de analizar son los siguientes:
+
+1.  **Índice de Agresividad vs. Empatía y Confiabilidad (MR1)**: Correlaciona positivamente con v37:"Eres rudo con otros", v27:"Puedes ser frio y distante", v12:"Empiezas peleas con otros", v2:"Tiende a encontrar fallas en los demas", v8:"Puede ser algo descuidado". Y correlaciona negativamente con v16:"Generas mucho entusiasmo", v17:"Perdonas facilmente", v13:"Eres un trabajador confiable".
+
+2.  **Índice de Extroversión-Introversión (MR2)**: Correlaciona positivamente con V1: "Eres hablador" y V26: "Tienes una personalidad asertiva". Correlaciona negativamente con V31: "Eres tímido" y V6: "Eres reservado".
+
+3.  **Índice de Minuciosidad y Eficiencia (MR3)**: Correlaciona positivamente con v3:"Hace un trabajo minucioso", v28:"Perseveras hasta el final", v33:"Haces cosas eficientemente".
+
+En resumen es un buen modelo.
+
+```{r}
+Efa_ord_4 <- fa(Datos, cor="mixed", covar = TRUE, nfactor = 4, rotate = "none")
+
+Efa_ord_4
+
+#Correlaciones
+fa.diagram(Efa_ord_4)
+title("(Datos originales ordinales con 4 factores)")
+```
+
+Los factores representan las mismas variables que el inciso anterior, ademas de que parece ser peor modelo.
+
+```{r}
+Efa_ord_5 <- fa(Datos, cor="mixed", covar = TRUE, nfactor = 5, rotate = "none")
+
+Efa_ord_5
+
+#Correlaciones
+fa.diagram(Efa_ord_5)
+title("(Datos originales ordinales con 5 factores)")
+```
+
+Los factores representan las mismas variables que el inciso anterior, ademas de que parece ser peor modelo.
+
+b)  Con rotacion oblimin.
+
+```{r}
+Efa_ord_obli_3 <- fa(Datos, cor="mixed", covar = TRUE, nfactor = 3, rotate = "oblimin")
+
+Efa_ord_obli_3
+
+#Correlaciones
+fa.diagram(Efa_ord_obli_3)
+title("(Datos originales ordinales, 3 factores y rotacion oblimin)")
+```
+
+De la salida anterior, se extraen los siguientes resultados:
+
+1.  La probabilidad asociada (prob) es menor a 7.7e-07, lo que sugiere que el modelo no se ajusta bien a los datos, ya que es muy baja.
+
+2.  El Índice de Fiabilidad de Factores de Tucker Lewis es 0.878, lo que nos dice que es un buen modelo, sin embargo no es el mejor ya que no es el mas cercano a 1.
+
+3.  El índice RMSEA es 0.069 que indica que los datos parecen ajustarse bien a los datos, pero hay mejores.
+
+4.  El BIC es -209.72, lo que sugiere que este es un buen ajuste del modelo.
+
+Algunas factores interesantes de analizar son los siguientes:
+
+Algunas factores interesantes de analizar son los siguientes:
+
+1.  **Índice de Agresividad vs. Empatía y Confiabilidad (MR1)**: Correlaciona positivamente con v37:"Eres rudo con otros", v27:"Puedes ser frio y distante", v12:"Empiezas peleas con otros", v2:"Tiende a encontrar fallas en los demas", v8:"Puede ser algo descuidado". Y correlaciona negativamente con v16:"Generas mucho entusiasmo", v17:"Perdonas facilmente", v13:"Eres un trabajador confiable".
+
+2.  **Índice de Extroversión-Introversión (MR2)**: Correlaciona positivamente con V1: "Eres hablador" y V26: "Tienes una personalidad asertiva". Correlaciona negativamente con V31: "Eres tímido" y V6: "Eres reservado".
+
+3.  **Índice de Minuciosidad y Eficiencia (MR3)**: Correlaciona positivamente con v3:"Hace un trabajo minucioso", v28:"Perseveras hasta el final", v33:"Haces cosas eficientemente".
+
+Como vemos las dimenciones son las mismas que el anterior, pero este parece ser mejor modelo.
+
+```{r}
+Efa_ord_obli_4 <- fa(Datos, cor="mixed", covar = TRUE, nfactor = 4, rotate = "oblimin")
+
+Efa_ord_obli_4
+
+#Correlaciones
+fa.diagram(Efa_ord_obli_4)
+title("(Datos originales ordinales, 3 factores y rotacion oblimin)")
+```
+
+De la salida anterior, se extraen los siguientes resultados:
+
+1.  La probabilidad asociada (prob) es menor a 0.0018, lo que sugiere que el modelo no se ajusta bien a los datos, ya que es muy baja.
+
+2.  El Índice de Fiabilidad de Factores de Tucker Lewis es 0.925, lo que nos dice que es un buen modelo, sin embargo no es el mejor ya que no es el mas cercano a 1.
+
+3.  El índice RMSEA es 0.054 que indica que los datos parecen ajustarse bien a los datos, pero hay mejores.
+
+4.  El BIC es -191., lo que sugiere que este es un buen ajuste del modelo.
+
+Algunas factores interesantes de analizar son los siguientes:
+
+1.  **Índice de Agresividad vs. Empatía y Confiabilidad (MR1)**: Correlaciona positivamente con v37:"Eres rudo con otros", v27:"Puedes ser frio y distante", v12:"Empiezas peleas con otros", v2:"Tiende a encontrar fallas en los demas", v8:"Puede ser algo descuidado". Y correlaciona negativamente con v16:"Generas mucho entusiasmo", v17:"Perdonas facilmente", v13:"Eres un trabajador confiable".
+
+2.  **Índice de Extroversión-Introversión (MR2)**: Correlaciona positivamente con V1: "Eres hablador" y V26: "Tienes una personalidad asertiva". Correlaciona negativamente con V31: "Eres tímido" y V6: "Eres reservado".
+
+3.  **Índice de Minuciosidad y Eficiencia (MR3)**: Correlaciona positivamente con v3:"Hace un trabajo minucioso", v28:"Perseveras hasta el final", v33:"Haces cosas eficientemente".
+
+En resumen es un buen modelo.
+
+c)  con rotacion varimax
+
+```{r}
+Efa_ord_vari_3 <- fa(Datos, cor="mixed", covar = TRUE, nfactor = 3, rotate = "varimax")
+
+Efa_ord_vari_3
+
+#Correlaciones
+fa.diagram(Efa_ord_vari_3)
+title("(Datos originales ordinales, 3 factores y rotacion varimax)")
+```
+
+De la salida anterior, se extraen los siguientes resultados:
+
+1.  La probabilidad asociada (prob) es menor a 7.7e-07, lo que sugiere que el modelo no se ajusta bien a los datos, ya que es muy baja.
+
+2.  El Índice de Fiabilidad de Factores de Tucker Lewis es 0.878, lo que nos dice que es un buen modelo, sin embargo no es el mejor ya que no es el mas cercano a 1.
+
+3.  El índice RMSEA es 0.069 que indica que los datos parecen ajustarse bien a los datos, pero hay mejores.
+
+4.  El BIC es -209.73, lo que sugiere que este es un buen ajuste del modelo.
+
+Algunas factores interesantes de analizar son los siguientes:
+
+1.  **Índice de Agresividad vs. Empatía y Confiabilidad (MR1)**: Correlaciona positivamente con v37:"Eres rudo con otros", v27:"Puedes ser frio y distante", v12:"Empiezas peleas con otros", v2:"Tiende a encontrar fallas en los demas", v8:"Puede ser algo descuidado". Y correlaciona negativamente con v16:"Generas mucho entusiasmo", v17:"Perdonas facilmente", v13:"Eres un trabajador confiable".
+
+2.  **Índice de Extroversión-Introversión (MR2)**: Correlaciona positivamente con V1: "Eres hablador" y V26: "Tienes una personalidad asertiva". Correlaciona negativamente con V31: "Eres tímido" y V6: "Eres reservado".
+
+3.  **Índice de Minuciosidad y Eficiencia (MR3)**: Correlaciona positivamente con v3:"Hace un trabajo minucioso", v28:"Perseveras hasta el final", v33:"Haces cosas eficientemente".
+
+En resumen es un buen modelo.
+
+```{r}
+Efa_ord_vari_4 <- fa(Datos, cor="mixed", covar = TRUE, nfactor = 4, rotate = "varimax")
+
+Efa_ord_vari_4
+
+#Correlaciones
+fa.diagram(Efa_ord_vari_4)
+title("(Datos originales ordinales, 4 factores y rotacion varimax)")
+```
+
+De la salida anterior, se extraen los siguientes resultados:
+
+1.  La probabilidad asociada (prob) es menor a 0.0018, lo que sugiere que el modelo no se ajusta bien a los datos, ya que es muy baja.
+
+2.  El Índice de Fiabilidad de Factores de Tucker Lewis es 0.925, lo que nos dice que es un buen modelo, sin embargo no es el mejor ya que no es el mas cercano a 1.
+
+3.  El índice RMSEA es 0.054 que indica que los datos parecen ajustarse bien a los datos, pero hay mejores.
+
+4.  El BIC es -191.53, lo que sugiere que este es un buen ajuste del modelo.
+
+Algunas factores interesantes de analizar son los siguientes:
+
+1.  **Índice de Hostilidad y Crítica Interpersonal (MR1)**: Correlaciona positivamente con v37:"Eres rudo con otros", v27:"Puedes ser frio y distante", v12:"Empiezas peleas con otros", v2:"Tiende a encontrar fallas en los demas". Y correlaciona negativamente con v17:"Perdonas facilmente".
+
+2.  **Índice de Sociabilidad y Asertividad (MR2)**: Correlaciona positivamente con V1: "Eres hablador", v16:"Generas mucho entusiasmo", V26: "Tienes una personalidad asertiva". Correlaciona negativamente con V31: "Eres tímido" y V6: "Eres reservado".
+
+3.  **Índice de Diligencia y Confiabilidad (MR3)**: Correlaciona positivamente con v3:"Hace un trabajo minucioso", v28:"Perseveras hasta el final", v33:"Haces cosas eficientemente", v13:"Es un trabajador confiable".
+
+En resumen es un buen modelo.
